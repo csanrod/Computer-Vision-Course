@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
@@ -9,6 +10,7 @@ using namespace std;
 
 // Function Header
 void ChangeColorSpace (int a, void * arg);
+double Minimum (double a, double b);
 
 // Constants
 enum color_spaces {
@@ -65,6 +67,7 @@ void ChangeColorSpace (int a, void * arg)
 
     vector <Mat> BGR_vector,
                  CMY_vector,
+                 HSI_vector,
                  channels;
 
     
@@ -108,6 +111,32 @@ void ChangeColorSpace (int a, void * arg)
 
         case HSI:
             cout << "HSI selected\n";
+            split(src, HSI_vector);
+
+            for (int i = 0; i < src.rows; i++) {
+                for (int j = 0; j < src.cols; j++) {
+                    double B = (double)HSI_vector[0].at<uchar>(i, j)/255;
+                    double G = (double)HSI_vector[1].at<uchar>(i, j)/255;
+                    double R = (double)HSI_vector[2].at<uchar>(i, j)/255;
+
+                    double H = acos(((1/2)*((R - G) + (R - B))) / sqrt((pow((R - B), 2)) + (R - B)*(G - B)));
+                    if (B > G)
+                        H = 360 - H;
+                    double S = 1 - (3 / (R + G + B))*Minimum (Minimum (R, G), B);
+                    double I = (R + G + B) / 3;
+
+                    HSI_vector[0].at<uchar>(i, j) = H * 255;
+                    HSI_vector[1].at<uchar>(i, j) = S * 255;
+                    HSI_vector[2].at<uchar>(i, j) = I * 255;
+                }
+            }
+
+            channels.push_back(HSI_vector[0]);
+            channels.push_back(HSI_vector[1]);
+            channels.push_back(HSI_vector[2]);
+
+            merge(channels, dst);
+            imshow(WINDOW_NAME, dst);
             break;
 
         case HSV:
@@ -121,4 +150,16 @@ void ChangeColorSpace (int a, void * arg)
         default:
             cout << "Something unexpected happened in ChangeColorSpace\n";
     }
+}
+
+double Minimum (double a, double b)
+{
+    double result;
+
+    if (a < b)
+        result = a;
+    else
+        result = b;
+
+    return result;
 }
