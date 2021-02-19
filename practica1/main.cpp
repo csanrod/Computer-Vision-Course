@@ -6,12 +6,21 @@
 using namespace cv;
 using namespace std;
 
+// Constants
+enum color_spaces {
+    RGB = 0,
+    CMY,
+    HSI,
+    HSV,
+    HSV_OPENCV
+};
+
 // Global variables
-int color_space = 0,
+int color_space = RGB,
     max_color_space = 4;
 
 // Function Header
-void ChangeColorSpace (int option, void * arg);
+void ChangeColorSpace (int a, void * arg);
 
 int main( int argc, char** argv ) {
     cout << "INIT\n";
@@ -38,9 +47,31 @@ int main( int argc, char** argv ) {
 
     return 0;
 }
-void ChangeColorSpace (int option, void * arg) 
+void ChangeColorSpace (int a, void * arg) 
 {
-    cout << "Stuff inside ChangeColorSpace\n";
-    cout << option << endl;
-    cout << arg << endl;
+    switch (color_space) 
+    {
+        case RGB:
+            cout << "RGB selected\n";
+            break;
+
+        case CMY:
+            cout << "CMY selected\n";
+            break;
+
+        case HSI:
+            cout << "HSI selected\n";
+            break;
+
+        case HSV:
+            cout << "HSV selected\n";
+            break;
+
+        case HSV_OPENCV:
+            cout << "HSV OpenCV selected\n";
+            break;
+        
+        default:
+            cout << "Something unexpected happened in ChangeColorSpace\n";
+    }
 }
