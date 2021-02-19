@@ -11,6 +11,7 @@ using namespace std;
 // Function Header
 void ChangeColorSpace (int a, void * arg);
 double Minimum (double a, double b);
+double Maximum (double a, double b);
 
 // Constants
 enum color_spaces {
@@ -34,8 +35,6 @@ Mat src,
 
 
 int main( int argc, char** argv ) {
-    cout << "INIT\n";
-
     src = imread( RELATIVE_PATH, IMREAD_COLOR );
     if ( src.empty() ) {
         cout << "Could not open or find the image!\n" << endl;
@@ -55,8 +54,6 @@ int main( int argc, char** argv ) {
 
     ChangeColorSpace (0, 0);
 
-    cout << "END\n";
-
     // Wait to press a key
     waitKey(0);
 
@@ -68,6 +65,7 @@ void ChangeColorSpace (int a, void * arg)
     vector <Mat> BGR_vector,
                  CMY_vector,
                  HSI_vector,
+                 HSV_vector,
                  channels;
 
     
@@ -141,10 +139,38 @@ void ChangeColorSpace (int a, void * arg)
 
         case HSV:
             cout << "HSV selected\n";
+            split(src, HSV_vector);
+
+            for (int i = 0; i < src.rows; i++) {
+                for (int j = 0; j < src.cols; j++) {
+                    double B = (double)HSV_vector[0].at<uchar>(i, j)/255;
+                    double G = (double)HSV_vector[1].at<uchar>(i, j)/255;
+                    double R = (double)HSV_vector[2].at<uchar>(i, j)/255;
+
+                    double H = acos(((1/2)*((R - G) + (R - B))) / sqrt((pow((R - B), 2)) + (R - B)*(G - B)));
+                    if (B > G)
+                        H = 360 - H;
+                    double S = 1 - (3 / (R + G + B))*Minimum (Minimum (R, G), B);
+                    double V = Maximum(Maximum(R, G), B);
+
+                    HSV_vector[0].at<uchar>(i, j) = H * 255;
+                    HSV_vector[1].at<uchar>(i, j) = S * 255;
+                    HSV_vector[2].at<uchar>(i, j) = V * 255;
+                }
+            }
+
+            channels.push_back(HSV_vector[0]);
+            channels.push_back(HSV_vector[1]);
+            channels.push_back(HSV_vector[2]);
+
+            merge(channels, dst);
+            imshow(WINDOW_NAME, dst);
             break;
 
         case HSV_OPENCV:
             cout << "HSV OpenCV selected\n";
+            cvtColor(src, dst, COLOR_BGR2HSV);
+            imshow(WINDOW_NAME, dst);
             break;
         
         default:
@@ -157,6 +183,18 @@ double Minimum (double a, double b)
     double result;
 
     if (a < b)
+        result = a;
+    else
+        result = b;
+
+    return result;
+}
+
+double Maximum (double a, double b)
+{
+    double result;
+
+    if (a > b)
         result = a;
     else
         result = b;
