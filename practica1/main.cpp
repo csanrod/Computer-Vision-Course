@@ -87,15 +87,19 @@ void ChangeColorSpace (int a, void * arg)
 
         case CMY:
             cout << "CMY selected\n";
+
+            for (int i = 0; i<3; i++)
+                CMY_vector.push_back(Mat(src.size(), CV_8UC1));
+
             // Vector de Mat BGR
-            split(src, CMY_vector);
+            split(src, BGR_vector);
 
             // Transformamos BGR a CMY. uchar --> [0,255]
             for (int i = 0; i < src.rows; i++) {
                 for (int j = 0; j < src.cols; j++) {
-                    CMY_vector[0].at<uchar>(i, j) = (uchar)(255 - (uint)CMY_vector[0].at<uchar>(i, j));
-                    CMY_vector[1].at<uchar>(i, j) = (uchar)(255 - (uint)CMY_vector[1].at<uchar>(i, j));
-                    CMY_vector[2].at<uchar>(i, j) = (uchar)(255 - (uint)CMY_vector[2].at<uchar>(i, j));
+                    CMY_vector[0].at<uchar>(i, j) = (uchar)(255 - (uint)BGR_vector[0].at<uchar>(i, j));
+                    CMY_vector[1].at<uchar>(i, j) = (uchar)(255 - (uint)BGR_vector[1].at<uchar>(i, j));
+                    CMY_vector[2].at<uchar>(i, j) = (uchar)(255 - (uint)BGR_vector[2].at<uchar>(i, j));
                 }
             }
 
@@ -109,13 +113,17 @@ void ChangeColorSpace (int a, void * arg)
 
         case HSI:
             cout << "HSI selected\n";
-            split(src, HSI_vector);
+            
+            for (int i = 0; i<3; i++)
+                HSI_vector.push_back(Mat(src.size(), CV_8UC1));
+
+            split(src, BGR_vector);
 
             for (int i = 0; i < src.rows; i++) {
                 for (int j = 0; j < src.cols; j++) {
-                    double B = (double)HSI_vector[0].at<uchar>(i, j)/255;
-                    double G = (double)HSI_vector[1].at<uchar>(i, j)/255;
-                    double R = (double)HSI_vector[2].at<uchar>(i, j)/255;
+                    double B = (double)BGR_vector[0].at<uchar>(i, j)/255;
+                    double G = (double)BGR_vector[1].at<uchar>(i, j)/255;
+                    double R = (double)BGR_vector[2].at<uchar>(i, j)/255;
 
                     double H = acos(((1/2)*((R - G) + (R - B))) / sqrt((pow((R - B), 2)) + (R - B)*(G - B)));
                     if (B > G)
@@ -123,7 +131,7 @@ void ChangeColorSpace (int a, void * arg)
                     double S = 1 - (3 / (R + G + B))*Minimum (Minimum (R, G), B);
                     double I = (R + G + B) / 3;
 
-                    HSI_vector[0].at<uchar>(i, j) = H * 255;
+                    HSI_vector[0].at<uchar>(i, j) = H * 179;
                     HSI_vector[1].at<uchar>(i, j) = S * 255;
                     HSI_vector[2].at<uchar>(i, j) = I * 255;
                 }
@@ -139,13 +147,18 @@ void ChangeColorSpace (int a, void * arg)
 
         case HSV:
             cout << "HSV selected\n";
-            split(src, HSV_vector);
+
+            for (int i = 0; i<3; i++)
+                HSV_vector.push_back(Mat(src.size(), CV_8UC1));
+
+            split(src, BGR_vector);
 
             for (int i = 0; i < src.rows; i++) {
                 for (int j = 0; j < src.cols; j++) {
-                    double B = (double)HSV_vector[0].at<uchar>(i, j)/255;
-                    double G = (double)HSV_vector[1].at<uchar>(i, j)/255;
-                    double R = (double)HSV_vector[2].at<uchar>(i, j)/255;
+                    double B = (double)BGR_vector[0].at<uchar>(i, j)/255;
+                    double G = (double)BGR_vector[1].at<uchar>(i, j)/255;
+                    double R = (double)BGR_vector[2].at<uchar>(i, j)/255;
+
 
                     double H = acos(((1/2)*((R - G) + (R - B))) / sqrt((pow((R - B), 2)) + (R - B)*(G - B)));
                     if (B > G)
@@ -153,7 +166,7 @@ void ChangeColorSpace (int a, void * arg)
                     double S = 1 - (3 / (R + G + B))*Minimum (Minimum (R, G), B);
                     double V = Maximum(Maximum(R, G), B);
 
-                    HSV_vector[0].at<uchar>(i, j) = H * 255;
+                    HSV_vector[0].at<uchar>(i, j) = H * 179;
                     HSV_vector[1].at<uchar>(i, j) = S * 255;
                     HSV_vector[2].at<uchar>(i, j) = V * 255;
                 }
