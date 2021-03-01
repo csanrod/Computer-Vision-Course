@@ -91,6 +91,11 @@ int main(int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
+    // Resize lenna
+    int tam = 4;
+    int h = I.size().height/tam, w = I.size().width/tam;
+    cv::resize(I,I,Size(h,w),0,0,INTER_LANCZOS4);
+
     // Compute the Discrete fourier transform
     Mat complexImg = computeDFT(I);
     Mat filter = complexImg.clone();
