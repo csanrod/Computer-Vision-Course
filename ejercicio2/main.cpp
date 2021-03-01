@@ -7,6 +7,9 @@
 using namespace cv;
 using namespace std;
 
+const String WINDOW_NAME = "Practise 2";
+int option = 0;
+
 static void help(char ** argv) {
     cout << endl
         <<  "This program demonstrated the use of the discrete Fourier transform (DFT). " << endl
@@ -82,6 +85,11 @@ Mat spectrum(const Mat &complexI) {
     return spectrum;
 }
 
+void SliderCallback (int a, void * arg) 
+{
+
+}
+
 int main(int argc, char ** argv) {
     help(argv);
     const char* filename = argc >=2 ? argv[1] : "../../vision/images/lenna.jpg";
@@ -91,8 +99,19 @@ int main(int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
+    
+
     // Resize lenna
     resize(I, I, Size(512, 512));
+
+
+    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
+    imshow(WINDOW_NAME, I);
+
+    createTrackbar( "Element:\n  0:  Original  \n  1:  Fourier  \n  2:  HPF  \n  3:  LPF  \n  4:  AND", 
+                    WINDOW_NAME,           
+                    &option, 4,           
+                    SliderCallback );
 
     // Compute the Discrete fourier transform
     Mat complexImg = computeDFT(I);
@@ -123,3 +142,4 @@ int main(int argc, char ** argv) {
     waitKey(0);
     return EXIT_SUCCESS;
 }
+
