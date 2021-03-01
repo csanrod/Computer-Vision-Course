@@ -7,8 +7,16 @@
 using namespace cv;
 using namespace std;
 
+enum slider {
+    ORIGINAL = 0,
+    FOURIER,
+    HPF,
+    LPF,
+    AND
+};
+
 const String WINDOW_NAME = "Practise 2";
-int option = 0;
+int option = ORIGINAL;
 
 static void help(char ** argv) {
     cout << endl
@@ -87,7 +95,28 @@ Mat spectrum(const Mat &complexI) {
 
 void SliderCallback (int a, void * arg) 
 {
+    switch (option)
+    {
+        case ORIGINAL:
+            cout << "(0) Original selected" << endl;
+            break;
 
+        case FOURIER:
+            cout << "(1) Fourier selected" << endl;
+            break;
+
+        case HPF:
+            cout << "(2) HPF selected" << endl;
+            break;
+
+        case LPF:
+            cout << "(3) LPF selected" << endl;
+            break;
+
+        case AND:
+            cout << "(4) AND selected" << endl;
+            break;
+    }
 }
 
 int main(int argc, char ** argv) {
@@ -104,7 +133,7 @@ int main(int argc, char ** argv) {
     // Resize lenna
     resize(I, I, Size(512, 512));
 
-
+    // Slider
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
     imshow(WINDOW_NAME, I);
 
@@ -112,6 +141,8 @@ int main(int argc, char ** argv) {
                     WINDOW_NAME,           
                     &option, 4,           
                     SliderCallback );
+
+    SliderCallback(0, 0);
 
     // Compute the Discrete fourier transform
     Mat complexImg = computeDFT(I);
