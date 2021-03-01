@@ -20,7 +20,9 @@ int option = ORIGINAL;
 Mat image_input,
     image_output,
     complexImg,
-    spectrum_original;
+    spectrum_original,
+    HPFilter,
+    LPFilter;
 
 static void help(char ** argv) {
     cout << endl
@@ -116,16 +118,33 @@ void SliderCallback (int a, void * arg)
 
         case HPF:
             cout << "(2) HPF selected" << endl;
+
+            imshow(WINDOW_NAME, HPFilter);
             break;
 
         case LPF:
             cout << "(3) LPF selected" << endl;
+            
+            imshow(WINDOW_NAME, LPFilter);
             break;
 
         case AND:
             cout << "(4) AND selected" << endl;
             break;
     }
+}
+
+void create_LPFilter ()
+{
+    LPFilter = Mat::zeros(512, 512, CV_8UC1);
+    circle(LPFilter, Point(512/2,512/2), 50.0, Scalar(255, 255, 255), -1, 8);
+}
+
+void create_HPFilter ()
+{
+    HPFilter = Mat::zeros(512, 512, CV_8UC1);
+    HPFilter.setTo(Scalar(255, 255, 255));
+    circle(HPFilter, Point(512/2,512/2), 50.0, Scalar(0, 0, 0), -1, 8);
 }
 
 int main(int argc, char ** argv) {
@@ -137,7 +156,8 @@ int main(int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
-    
+    create_LPFilter();
+    create_HPFilter();
 
     // Resize lenna
     resize(image_input, image_input, Size(512, 512));
