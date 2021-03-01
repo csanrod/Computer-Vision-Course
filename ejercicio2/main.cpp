@@ -17,6 +17,10 @@ enum slider {
 
 const String WINDOW_NAME = "Practise 2";
 int option = ORIGINAL;
+Mat image_input,
+    image_output,
+    complexImg,
+    spectrum_original;
 
 static void help(char ** argv) {
     cout << endl
@@ -99,10 +103,15 @@ void SliderCallback (int a, void * arg)
     {
         case ORIGINAL:
             cout << "(0) Original selected" << endl;
+            imshow(WINDOW_NAME, image_input);
             break;
 
         case FOURIER:
             cout << "(1) Fourier selected" << endl;
+            complexImg = computeDFT(image_input);
+            spectrum_original = spectrum(complexImg);
+
+            imshow(WINDOW_NAME, spectrum_original);
             break;
 
         case HPF:
@@ -122,8 +131,8 @@ void SliderCallback (int a, void * arg)
 int main(int argc, char ** argv) {
     help(argv);
     const char* filename = argc >=2 ? argv[1] : "../../vision/images/lenna.jpg";
-    Mat I = imread( samples::findFile( filename ), IMREAD_GRAYSCALE);
-    if( I.empty()){
+    image_input = imread( samples::findFile( filename ), IMREAD_GRAYSCALE);
+    if( image_input.empty()){
         cout << "Error opening image" << endl;
         return EXIT_FAILURE;
     }
@@ -131,11 +140,11 @@ int main(int argc, char ** argv) {
     
 
     // Resize lenna
-    resize(I, I, Size(512, 512));
+    resize(image_input, image_input, Size(512, 512));
 
     // Slider
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
-    imshow(WINDOW_NAME, I);
+    imshow(WINDOW_NAME, image_input);
 
     createTrackbar( "Element:\n  0:  Original  \n  1:  Fourier  \n  2:  HPF  \n  3:  LPF  \n  4:  AND", 
                     WINDOW_NAME,           
@@ -144,31 +153,31 @@ int main(int argc, char ** argv) {
 
     SliderCallback(0, 0);
 
-    // Compute the Discrete fourier transform
-    Mat complexImg = computeDFT(I);
-    Mat filter = complexImg.clone();
+    // // Compute the Discrete fourier transform
+    // Mat complexImg = computeDFT(I);
+    // Mat filter = complexImg.clone();
 
-    // Get the spectrum
-    Mat spectrum_original = spectrum(complexImg);
+    // // Get the spectrum
+    // Mat spectrum_original = spectrum(complexImg);
 
-    // 6. Crop and rearrange
-    fftShift(complexImg);
-    //doSomethingWithTheSpectrum();   
-    fftShift(complexImg); // rearrage quadrants
+    // // 6. Crop and rearrange
+    // fftShift(complexImg);
+    // //doSomethingWithTheSpectrum();   
+    // fftShift(complexImg); // rearrage quadrants
 
-    // Get the spectrum
-    Mat spectrum_filter = spectrum(complexImg);
+    // // Get the spectrum
+    // Mat spectrum_filter = spectrum(complexImg);
 
-    // 8. Results
-    imshow("Input Image"       , I   );    // Show the result
-    imshow("Spectrum original", spectrum_original);
-    imshow("Spectrum filter", spectrum_filter);
+    // // 8. Results
+    // imshow("Input Image"       , I   );    // Show the result
+    // imshow("Spectrum original", spectrum_original);
+    // imshow("Spectrum filter", spectrum_filter);
 
-    // 9. Calculating the idft
-    Mat inverseTransform;
-    idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-    normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
-    imshow("Reconstructed", inverseTransform);
+    // // 9. Calculating the idft
+    // Mat inverseTransform;
+    // idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+    // normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
+    // imshow("Reconstructed", inverseTransform);
 
     waitKey(0);
     return EXIT_SUCCESS;
