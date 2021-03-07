@@ -22,7 +22,9 @@ Mat image_input,
     complexImg,
     spectrum_original,
     HPFilter,
-    LPFilter;
+    LPFilter,
+    filtered,
+    inverseTransform;
 
 static void help(char ** argv) {
     cout << endl
@@ -99,6 +101,19 @@ Mat spectrum(const Mat &complexI) {
     return spectrum;
 }
 
+void create_HPFilter ()
+{
+    HPFilter = computeDFT(image_input);
+    HPFilter.setTo(Scalar(255, 255, 255));
+    circle(HPFilter, Point(0,0), 50.0, Scalar(0, 0, 0), -1, 8);
+}
+
+void create_LPFilter ()
+{
+    LPFilter = Mat::zeros(512, 512, CV_8UC1);
+    circle(LPFilter, Point(512/2,512/2), 50.0, Scalar(255, 255, 255), -1, 8);
+}
+
 void SliderCallback (int a, void * arg) 
 {
     switch (option)
@@ -119,32 +134,49 @@ void SliderCallback (int a, void * arg)
         case HPF:
             cout << "(2) HPF selected" << endl;
 
-            imshow(WINDOW_NAME, HPFilter);
+            complexImg = computeDFT(image_input);
+
+            fftShift(complexImg);
+
+            HPFilter = complexImg.clone();
+            HPFilter.setTo(Scalar(255, 255, 255));
+            circle(HPFilter, Point(HPFilter.rows/2,HPFilter.cols/2), 50.0, Scalar(0, 0, 0), -1, 8);
+            mulSpectrums(complexImg, HPFilter, complexImg, 0);
+
+            fftShift(complexImg);
+
+            HPFilter = spectrum(complexImg);
+
+            idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+            normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
+            imshow(WINDOW_NAME, inverseTransform);
             break;
 
         case LPF:
             cout << "(3) LPF selected" << endl;
+
+            complexImg = computeDFT(image_input);
+
+            fftShift(complexImg);
+
+            LPFilter = complexImg.clone();
+            LPFilter.setTo(Scalar(0, 0, 0));
+            circle(LPFilter, Point(LPFilter.rows/2,LPFilter.cols/2), 50.0, Scalar(255, 255, 255), -1, 8);
+            mulSpectrums(complexImg, LPFilter, complexImg, 0);
+
+            fftShift(complexImg);
+
+            LPFilter = spectrum(complexImg);
             
-            imshow(WINDOW_NAME, LPFilter);
+            idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+            normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
+            imshow(WINDOW_NAME, inverseTransform);
             break;
 
         case AND:
             cout << "(4) AND selected" << endl;
             break;
     }
-}
-
-void create_LPFilter ()
-{
-    LPFilter = Mat::zeros(512, 512, CV_8UC1);
-    circle(LPFilter, Point(512/2,512/2), 50.0, Scalar(255, 255, 255), -1, 8);
-}
-
-void create_HPFilter ()
-{
-    HPFilter = Mat::zeros(512, 512, CV_8UC1);
-    HPFilter.setTo(Scalar(255, 255, 255));
-    circle(HPFilter, Point(512/2,512/2), 50.0, Scalar(0, 0, 0), -1, 8);
 }
 
 int main(int argc, char ** argv) {
@@ -155,9 +187,6 @@ int main(int argc, char ** argv) {
         cout << "Error opening image" << endl;
         return EXIT_FAILURE;
     }
-
-    create_LPFilter();
-    create_HPFilter();
 
     // Resize lenna
     resize(image_input, image_input, Size(512, 512));
