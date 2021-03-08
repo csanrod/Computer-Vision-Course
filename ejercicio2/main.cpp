@@ -227,7 +227,7 @@ void SliderCallback (int a, void * arg)
 
 // -- MAIN -- //
 int main(int argc, char ** argv) {
-    const char* filename = argc >=2 ? argv[1] : "../../vision/images/lenna.jpg";
+    const char* filename = argc >=2 ? argv[1] : "./lenna.jpg";
 
     // Input en escala de grises para aplicar las operaciones
     image_input = imread( samples::findFile( filename ), IMREAD_GRAYSCALE);
