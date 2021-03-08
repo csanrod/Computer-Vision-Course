@@ -24,7 +24,10 @@ Mat image_input,
     HPFilter,
     LPFilter,
     filtered,
-    inverseTransform;
+    HPinverseTransform,
+    LPinverseTransform,
+    highP,
+    lowP;
 
 static void help(char ** argv) {
     cout << endl
@@ -147,9 +150,9 @@ void SliderCallback (int a, void * arg)
 
             HPFilter = spectrum(complexImg);
 
-            idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-            normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
-            imshow(WINDOW_NAME, inverseTransform);
+            idft(complexImg, HPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+            normalize(HPinverseTransform, HPinverseTransform, 0, 1, NORM_MINMAX);
+            imshow(WINDOW_NAME, HPinverseTransform); //HPinverseTransform son FLOATS ENTRE 0 Y 1
             break;
 
         case LPF:
@@ -168,13 +171,40 @@ void SliderCallback (int a, void * arg)
 
             LPFilter = spectrum(complexImg);
             
-            idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-            normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
-            imshow(WINDOW_NAME, inverseTransform);
+            idft(complexImg, LPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+            normalize(LPinverseTransform, LPinverseTransform, 0, 1, NORM_MINMAX);
+            imshow(WINDOW_NAME, LPinverseTransform);
             break;
 
         case AND:
             cout << "(4) AND selected" << endl;
+            highP = Mat::zeros(512, 512, CV_8UC1);
+            float p = 0.4;
+            for (int row = 0; row < HPinverseTransform.rows; row++){
+                for (int col = 0; col < HPinverseTransform.cols; col++){
+                    float px_value = HPinverseTransform.at<float>(row,col); 
+                    if (px_value > p)
+                        highP.at<uchar>(row,col) = (uint)255;
+                    else
+                        highP.at<uchar>(row,col) = (uint)0;
+                }
+            }
+
+            lowP = Mat::zeros(512, 512, CV_8UC1);
+            p = 0.6; // p=0.6
+            for (int row = 0; row < LPinverseTransform.rows; row++){
+                for (int col = 0; col < LPinverseTransform.cols; col++){
+                    float px_value = LPinverseTransform.at<float>(row,col);        
+                    if (px_value > p)
+                        lowP.at<uchar>(row,col) = (uint)255;
+                    else
+                        lowP.at<uchar>(row,col) = (uint)0;
+                }
+            }
+
+            bitwise_and(highP, lowP, image_output);
+
+            imshow(WINDOW_NAME, image_output);
             break;
     }
 }
