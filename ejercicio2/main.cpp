@@ -1,3 +1,20 @@
+/* ------------------------------------------------------------ */
+// Programador: Cristian Sánchez Rodríguez
+//
+// Asignatura: Visión Artificial (Ejercicio 2)
+//
+// Descripción: En esta práctica se verá aplicado de forma  
+//				práctica transformaciones del dominio y espaciales
+//              de la imagen "lenna"    
+//
+//				Se aplica lo siguiente: 
+//				    - Espectro de frecuencias
+//				    - Filtro paso alto
+//				    - Filtro paso bajo
+//                  - Operación AND sobre operación umbral
+/* ------------------------------------------------------------ */
+
+// -- Includes -- //
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
@@ -7,6 +24,7 @@
 using namespace cv;
 using namespace std;
 
+// -- Constantes y variables globales -- //
 enum slider {
     ORIGINAL = 0,
     FOURIER,
@@ -17,26 +35,18 @@ enum slider {
 
 const String WINDOW_NAME = "Practise 2";
 int option = ORIGINAL;
-Mat image_input,
-    image_output,
-    complexImg,
-    spectrum_original,
-    HPFilter,
-    LPFilter,
-    filtered,
-    HPinverseTransform,
-    LPinverseTransform,
-    highP,
-    lowP;
 
-static void help(char ** argv) {
-    cout << endl
-        <<  "This program demonstrated the use of the discrete Fourier transform (DFT). " << endl
-        <<  "The dft of an image is taken and it's power spectrum is displayed."  << endl << endl
-        <<  "Usage:"                                                                      << endl
-        << argv[0] << " [image_name -- default images/lenna.jpg]" << endl << endl;
-}
+Mat image_input,                // Imagen original
+    complexImg,                 // Transformada discreta de fourier
+    HPFilter,                   // Transformada filtrada paso alto
+    LPFilter,                   // Transformada filtrada paso bajo
+    HPinverseTransform,         // Imagen filtrada (inversa) paso alto
+    LPinverseTransform,         // Imagen filtrada (inversa) paso bajo
+    highP,                      // Umbral paso alto p
+    lowP,                       // Umbral paso bajo p
+    AND_output;                 // Imagen con AND aplicado de los umbrales
 
+// -- Métodos fourier -- //
 // Compute the Discrete fourier transform
 Mat computeDFT(Mat image) {
     // 1. Expand the image to an optimal size. 
@@ -79,7 +89,6 @@ void fftShift(Mat magI) {
     tmp.copyTo(q2);
 }
 
-
 // Calculate dft spectrum
 Mat spectrum(const Mat &complexI) {
     Mat complexImg = complexI.clone();
@@ -104,19 +113,83 @@ Mat spectrum(const Mat &complexI) {
     return spectrum;
 }
 
-void create_HPFilter ()
+// -- Métodos propios -- //
+// Filtro paso alto
+void aply_HPFilter ()
 {
-    HPFilter = computeDFT(image_input);
+    complexImg = computeDFT(image_input);
+
+    fftShift(complexImg);
+
+    HPFilter = complexImg.clone();
     HPFilter.setTo(Scalar(255, 255, 255));
-    circle(HPFilter, Point(0,0), 50.0, Scalar(0, 0, 0), -1, 8);
+    circle(HPFilter, Point(HPFilter.rows/2,HPFilter.cols/2), 50.0, Scalar(0, 0, 0), -1, 8);
+    mulSpectrums(complexImg, HPFilter, complexImg, 0);
+
+    fftShift(complexImg);
+
+    HPFilter = spectrum(complexImg);
+
+    idft(complexImg, HPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+    normalize(HPinverseTransform, HPinverseTransform, 0, 1, NORM_MINMAX);
 }
 
-void create_LPFilter ()
+// Filtro paso bajo
+void aply_LPFilter ()
 {
-    LPFilter = Mat::zeros(512, 512, CV_8UC1);
-    circle(LPFilter, Point(512/2,512/2), 50.0, Scalar(255, 255, 255), -1, 8);
+    complexImg = computeDFT(image_input);
+
+    fftShift(complexImg);
+
+    LPFilter = complexImg.clone();
+    LPFilter.setTo(Scalar(0, 0, 0));
+    circle(LPFilter, Point(LPFilter.rows/2,LPFilter.cols/2), 50.0, Scalar(255, 255, 255), -1, 8);
+    mulSpectrums(complexImg, LPFilter, complexImg, 0);
+
+    fftShift(complexImg);
+
+    LPFilter = spectrum(complexImg);
+    
+    idft(complexImg, LPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
+    normalize(LPinverseTransform, LPinverseTransform, 0, 1, NORM_MINMAX);
 }
 
+// And sobre umbral pixel a pixel
+void aply_AND ()
+{
+    // Umbral p = 0.4 a HPinverseTransform
+    aply_HPFilter();
+    highP = Mat::zeros(512, 512, CV_8UC1);
+    float p = 0.4;
+    for (int row = 0; row < HPinverseTransform.rows; row++){
+        for (int col = 0; col < HPinverseTransform.cols; col++){
+            float px_value = HPinverseTransform.at<float>(row,col); 
+            if (px_value > p)
+                highP.at<uchar>(row,col) = (uint)255;
+            else
+                highP.at<uchar>(row,col) = (uint)0;
+        }
+    }
+
+    // Umbral p = 0.6 a LPinverseTransform
+    aply_LPFilter();
+    lowP = Mat::zeros(512, 512, CV_8UC1);
+    p = 0.6;
+    for (int row = 0; row < LPinverseTransform.rows; row++){
+        for (int col = 0; col < LPinverseTransform.cols; col++){
+            float px_value = LPinverseTransform.at<float>(row,col);        
+            if (px_value > p)
+                lowP.at<uchar>(row,col) = (uint)255;
+            else
+                lowP.at<uchar>(row,col) = (uint)0;
+        }
+    }
+
+    // AND
+    bitwise_and(highP, lowP, AND_output);
+}
+
+// Callback del menu
 void SliderCallback (int a, void * arg) 
 {
     switch (option)
@@ -129,89 +202,34 @@ void SliderCallback (int a, void * arg)
         case FOURIER:
             cout << "(1) Fourier selected" << endl;
             complexImg = computeDFT(image_input);
-            spectrum_original = spectrum(complexImg);
-
-            imshow(WINDOW_NAME, spectrum_original);
+            imshow(WINDOW_NAME, spectrum(complexImg));
             break;
 
         case HPF:
             cout << "(2) HPF selected" << endl;
-
-            complexImg = computeDFT(image_input);
-
-            fftShift(complexImg);
-
-            HPFilter = complexImg.clone();
-            HPFilter.setTo(Scalar(255, 255, 255));
-            circle(HPFilter, Point(HPFilter.rows/2,HPFilter.cols/2), 50.0, Scalar(0, 0, 0), -1, 8);
-            mulSpectrums(complexImg, HPFilter, complexImg, 0);
-
-            fftShift(complexImg);
-
-            HPFilter = spectrum(complexImg);
-
-            idft(complexImg, HPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-            normalize(HPinverseTransform, HPinverseTransform, 0, 1, NORM_MINMAX);
+            aply_HPFilter();
             imshow(WINDOW_NAME, HPinverseTransform); //HPinverseTransform son FLOATS ENTRE 0 Y 1
             break;
 
         case LPF:
             cout << "(3) LPF selected" << endl;
-
-            complexImg = computeDFT(image_input);
-
-            fftShift(complexImg);
-
-            LPFilter = complexImg.clone();
-            LPFilter.setTo(Scalar(0, 0, 0));
-            circle(LPFilter, Point(LPFilter.rows/2,LPFilter.cols/2), 50.0, Scalar(255, 255, 255), -1, 8);
-            mulSpectrums(complexImg, LPFilter, complexImg, 0);
-
-            fftShift(complexImg);
-
-            LPFilter = spectrum(complexImg);
-            
-            idft(complexImg, LPinverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-            normalize(LPinverseTransform, LPinverseTransform, 0, 1, NORM_MINMAX);
+            aply_LPFilter();
             imshow(WINDOW_NAME, LPinverseTransform);
             break;
 
         case AND:
             cout << "(4) AND selected" << endl;
-            highP = Mat::zeros(512, 512, CV_8UC1);
-            float p = 0.4;
-            for (int row = 0; row < HPinverseTransform.rows; row++){
-                for (int col = 0; col < HPinverseTransform.cols; col++){
-                    float px_value = HPinverseTransform.at<float>(row,col); 
-                    if (px_value > p)
-                        highP.at<uchar>(row,col) = (uint)255;
-                    else
-                        highP.at<uchar>(row,col) = (uint)0;
-                }
-            }
-
-            lowP = Mat::zeros(512, 512, CV_8UC1);
-            p = 0.6; // p=0.6
-            for (int row = 0; row < LPinverseTransform.rows; row++){
-                for (int col = 0; col < LPinverseTransform.cols; col++){
-                    float px_value = LPinverseTransform.at<float>(row,col);        
-                    if (px_value > p)
-                        lowP.at<uchar>(row,col) = (uint)255;
-                    else
-                        lowP.at<uchar>(row,col) = (uint)0;
-                }
-            }
-
-            bitwise_and(highP, lowP, image_output);
-
-            imshow(WINDOW_NAME, image_output);
+            aply_AND();
+            imshow(WINDOW_NAME, AND_output);
             break;
     }
 }
 
+// -- MAIN -- //
 int main(int argc, char ** argv) {
-    help(argv);
     const char* filename = argc >=2 ? argv[1] : "../../vision/images/lenna.jpg";
+
+    // Input en escala de grises para aplicar las operaciones
     image_input = imread( samples::findFile( filename ), IMREAD_GRAYSCALE);
     if( image_input.empty()){
         cout << "Error opening image" << endl;
@@ -221,44 +239,16 @@ int main(int argc, char ** argv) {
     // Resize lenna
     resize(image_input, image_input, Size(512, 512));
 
-    // Slider
+    // Slider del menu
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
     imshow(WINDOW_NAME, image_input);
-
-    createTrackbar( "Element:\n  0:  Original  \n  1:  Fourier  \n  2:  HPF  \n  3:  LPF  \n  4:  AND", 
+    createTrackbar( "Element:\n  0:  Original  \n  1:  Fourier  \n  2:  HP Filter  \n  3:  LP Filter  \n  4:  AND", 
                     WINDOW_NAME,           
                     &option, 4,           
                     SliderCallback );
-
     SliderCallback(0, 0);
 
-    // // Compute the Discrete fourier transform
-    // Mat complexImg = computeDFT(I);
-    // Mat filter = complexImg.clone();
-
-    // // Get the spectrum
-    // Mat spectrum_original = spectrum(complexImg);
-
-    // // 6. Crop and rearrange
-    // fftShift(complexImg);
-    // //doSomethingWithTheSpectrum();   
-    // fftShift(complexImg); // rearrage quadrants
-
-    // // Get the spectrum
-    // Mat spectrum_filter = spectrum(complexImg);
-
-    // // 8. Results
-    // imshow("Input Image"       , I   );    // Show the result
-    // imshow("Spectrum original", spectrum_original);
-    // imshow("Spectrum filter", spectrum_filter);
-
-    // // 9. Calculating the idft
-    // Mat inverseTransform;
-    // idft(complexImg, inverseTransform, cv::DFT_INVERSE|cv::DFT_REAL_OUTPUT);
-    // normalize(inverseTransform, inverseTransform, 0, 1, NORM_MINMAX);
-    // imshow("Reconstructed", inverseTransform);
-
+    // End
     waitKey(0);
     return EXIT_SUCCESS;
 }
-
