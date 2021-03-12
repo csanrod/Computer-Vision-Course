@@ -139,10 +139,8 @@ void cross_control()
 void sliderCallback (int a, void * arg) 
 {
     cross_control();
-    printf("----\n");
-    printf("min: %d\n", min_value);
-    printf("max: %d\n", max_value);
-    printf("----\n");
+    aply_LPFilter();
+    imshow(WINDOW_NAME, LPinverseTransform);
 }
 
 // -- MAIN -- //
