@@ -26,8 +26,10 @@ using namespace std;
 
 // -- Constantes y variables globales -- //
 const String WINDOW_NAME = "Practise 3";
-int min_shrink_value = 0,
-    max_shrink_value = 30;
+int min_shrink_slider = 0,
+    max_shrink_slider = 30,
+    min_value = 0,
+    max_value = 30;
 
 Mat image_input,                // Imagen original
     complexImg,                 // Transformada discreta de fourier               
@@ -123,14 +125,24 @@ void aply_LPFilter ()
 }
 
 // Callbacks sliders
-void minCallback (int a, void * arg) 
+void cross_control()
 {
-    printf("min: %d\n", min_shrink_value);
+    if (max_shrink_slider < min_shrink_slider) {
+        min_value = 50;
+        max_value = 150;
+    } else {
+        min_value = min_shrink_slider;
+        max_value = max_shrink_slider;
+    }
 }
 
-void maxCallback (int a, void * arg) 
+void sliderCallback (int a, void * arg) 
 {
-    printf("max: %d\n", max_shrink_value);
+    cross_control();
+    printf("----\n");
+    printf("min: %d\n", min_value);
+    printf("max: %d\n", max_value);
+    printf("----\n");
 }
 
 // -- MAIN -- //
@@ -150,18 +162,18 @@ int main(int argc, char ** argv) {
     // Slider del menu
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
     imshow(WINDOW_NAME, image_input);
-    
+
     createTrackbar( "Shrink value min: 0-255", 
                     WINDOW_NAME,           
-                    &min_shrink_value, 255,           
-                    minCallback );
-    minCallback(0, 0);
+                    &min_shrink_slider, 255,           
+                    sliderCallback );
 
     createTrackbar( "Shrink value max: 0-255", 
                     WINDOW_NAME,           
-                    &max_shrink_value, 255,           
-                    maxCallback );
-    maxCallback(0, 0);
+                    &max_shrink_slider, 255,           
+                    sliderCallback );
+
+    sliderCallback(0, 0);
 
     // End
     waitKey(0);
