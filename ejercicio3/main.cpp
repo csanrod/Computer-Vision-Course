@@ -34,7 +34,8 @@ int min_shrink_slider = 0,
 Mat image_input,                // Imagen original
     complexImg,                 // Transformada discreta de fourier               
     LPFilter,                   // Transformada filtrada paso bajo       
-    LPinverseTransform;         // Transformada inversa paso bajo
+    LPinverseTransform,
+    histogram;         // Transformada inversa paso bajo
 
 // -- Métodos fourier -- //
 // Compute the Discrete fourier transform
@@ -104,6 +105,30 @@ Mat spectrum(const Mat &complexI) {
 }
 
 // -- Métodos propios -- //
+uint Minimum (uint a, uint b)
+{
+    double result;
+
+    if (a < b)
+        result = a;
+    else
+        result = b;
+
+    return result;
+}
+
+uint Maximum (uint a, uint b)
+{
+    double result;
+
+    if (a > b)
+        result = a;
+    else
+        result = b;
+
+    return result;
+}
+
 // Filtro paso bajo
 void aply_LPFilter ()
 {
@@ -140,7 +165,63 @@ void sliderCallback (int a, void * arg)
 {
     cross_control();
     aply_LPFilter();
-    imshow(WINDOW_NAME, LPinverseTransform);
+
+    double C_max = max_value, 
+           C_min = min_value,
+           r_max = 0, 
+           r_min = 255,
+           r_k = 0;
+
+    // Guardo en histogram la imagen LP con valores uchar de 0 a 255
+    histogram = image_input.clone();
+    for (int row = 0; row < LPinverseTransform.rows; row++){
+        for (int col = 0; col < LPinverseTransform.cols; col++){
+            histogram.at<uchar>(row,col) = (uchar)(LPinverseTransform.at<float>(row,col)*255);
+            r_max = Maximum(r_max, histogram.at<uchar>(row,col));
+            r_min = Minimum(r_min, histogram.at<uchar>(row,col));
+        }      
+    }
+
+    // Contracción histograma
+    cout << "C_max: "  << C_max << endl;
+    cout << "C_min: "  << C_min << endl;
+    cout << "r_max: "  << r_max << endl;
+    cout << "r_min: "  << r_min << endl << endl;
+
+    for (int row = 0; row < LPinverseTransform.rows; row++){
+        for (int col = 0; col < LPinverseTransform.cols; col++){
+            r_k = histogram.at<uchar>(row,col);
+            histogram.at<uchar>(row,col) = (uchar)(((C_max - C_min)/(r_max - r_min))*(r_k - r_min) + C_min);
+        }      
+    }
+
+
+    // Pintar histograma
+    int histSize = 256;
+    float range[] = { 0, 256 }; //the upper boundary is exclusive
+    const float* histRange = { range };
+    bool uniform = true, accumulate = false;
+
+    Mat hist;
+    calcHist( &histogram, 1, 0, Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
+    
+
+    int hist_w = 512, hist_h = 400;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+
+    normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+
+    for( int i = 1; i < histSize; i++ ) {
+        line(histImage, Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+             Scalar( 255, 0, 0), 2, 8, 0);
+    }
+
+    imshow("Mojón", histImage);
+    imshow(WINDOW_NAME, histogram);
+    //cout << "-- Me ejecuto crack! --" << endl;
 }
 
 // -- MAIN -- //
