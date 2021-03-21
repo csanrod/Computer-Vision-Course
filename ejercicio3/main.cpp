@@ -35,7 +35,8 @@ Mat image_input,                // Imagen original
     complexImg,                 // Transformada discreta de fourier               
     LPFilter,                   // Transformada filtrada paso bajo       
     LPinverseTransform,
-    histogram;         // Transformada inversa paso bajo
+    histogram,
+    image_output;         // Transformada inversa paso bajo
 
 // -- Métodos fourier -- //
 // Compute the Discrete fourier transform
@@ -225,6 +226,14 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
+    // Resta pixel a pixel
+    image_output = image_input.clone();
+    for (int row = 0; row < image_input.rows; row++){
+        for (int col = 0; col < image_input.cols; col++)
+            image_output.at<uchar>(row, col) = histogram.at<uchar>(row, col) - image_input.at<uchar>(row, col);
+    }
+
+    imshow("Resta pixel", image_output);
     imshow("Shrink", histImage);
     imshow(WINDOW_NAME, histogram);
     //cout << "-- Me ejecuto crack! --" << endl;
