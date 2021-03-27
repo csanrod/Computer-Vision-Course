@@ -36,6 +36,7 @@ Mat image_input,                // Imagen original
     LPFilter,                   // Transformada filtrada paso bajo       
     LPinverseTransform,
     histogram,
+    subtract_mat,
     image_output;         // Transformada inversa paso bajo
 
 // -- Métodos fourier -- //
@@ -184,10 +185,10 @@ void sliderCallback (int a, void * arg)
     }
 
     // Contracción histograma
-    cout << "C_max: "  << C_max << endl;
-    cout << "C_min: "  << C_min << endl;
-    cout << "r_max: "  << r_max << endl;
-    cout << "r_min: "  << r_min << endl << endl;
+    // cout << "C_max: "  << C_max << endl;
+    // cout << "C_min: "  << C_min << endl;
+    // cout << "r_max: "  << r_max << endl;
+    // cout << "r_min: "  << r_min << endl << endl;
 
     for (int row = 0; row < LPinverseTransform.rows; row++){
         for (int col = 0; col < LPinverseTransform.cols; col++){
@@ -203,8 +204,8 @@ void sliderCallback (int a, void * arg)
     const float* histRange = { range };
     bool uniform = true, accumulate = false;
 
-    Mat hist, input_hist;
-    calcHist( &histogram, 1, 0, Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
+    Mat shrink, input_hist;
+    calcHist( &histogram, 1, 0, Mat(), shrink, 1, &histSize, &histRange, uniform, accumulate );
     calcHist( &image_input, 1, 0, Mat(), input_hist, 1, &histSize, &histRange, uniform, accumulate );
     
 
@@ -213,12 +214,12 @@ void sliderCallback (int a, void * arg)
 
     Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
 
-    normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+    normalize(shrink, shrink, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
     normalize(input_hist, input_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
 
     for( int i = 1; i < histSize; i++ ) {
-        line(histImage, Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ),
-             Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+        line(histImage, Point( bin_w*(i-1), hist_h - cvRound(shrink.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(shrink.at<float>(i)) ),
              Scalar( 255, 0, 0), 2, 8, 0);
 
         line(histImage, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
@@ -227,14 +228,30 @@ void sliderCallback (int a, void * arg)
     }
 
     // Resta pixel a pixel
-    image_output = image_input.clone();
+    subtract_mat = image_input.clone();
     for (int row = 0; row < image_input.rows; row++){
         for (int col = 0; col < image_input.cols; col++)
-            image_output.at<uchar>(row, col) = histogram.at<uchar>(row, col) - image_input.at<uchar>(row, col);
+            subtract_mat.at<uchar>(row, col) = image_input.at<uchar>(row, col) - histogram.at<uchar>(row, col);
     }
 
-    imshow("Resta pixel", image_output);
+    // Pintar subtract original-shrink
+    Mat subtract_hist;
+    calcHist( &subtract_mat, 1, 0, Mat(), subtract_hist, 1, &histSize, &histRange, uniform, accumulate );
+    Mat histImage2( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+    normalize(subtract_hist, subtract_hist, 0, histImage2.rows, NORM_MINMAX, -1, Mat() );
+    for( int i = 1; i < histSize; i++ ) {
+        line(histImage2, Point( bin_w*(i-1), hist_h - cvRound(subtract_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(subtract_hist.at<float>(i)) ),
+             Scalar( 255, 0, 0), 2, 8, 0);
+
+        line(histImage2, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
+             Scalar( 0, 0, 255), 2, 8, 0  );
+    }
+
+    // imshow("Resta pixel", subtract_mat);    
     imshow("Shrink", histImage);
+    imshow("Subtract original-shrink", histImage2);
     imshow(WINDOW_NAME, histogram);
     //cout << "-- Me ejecuto crack! --" << endl;
 }
