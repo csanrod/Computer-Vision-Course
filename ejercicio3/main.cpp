@@ -37,6 +37,7 @@ Mat image_input,                // Imagen original
     LPinverseTransform,
     histogram,
     subtract_mat,
+    stretch_mat,
     image_output;         // Transformada inversa paso bajo
 
 // -- Métodos fourier -- //
@@ -249,9 +250,55 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    // imshow("Resta pixel", subtract_mat);    
+    // Expansión
+    double in = 0,
+           in_min = 255,
+           in_max = 0,
+           MAX = 255,
+           MIN = 0;
+
+    bool minimun_not_finded = true;
+    for( int i = 0; i < histSize; i++ ) {
+        //cout << cvRound(subtract_hist.at<float>(i)) << endl;
+        if (minimun_not_finded){
+            if (cvRound(subtract_hist.at<float>(i)) != 0){
+                in_min = i;
+                minimun_not_finded = false;
+            }
+        }
+
+        if (cvRound(subtract_hist.at<float>(i)) != 0)
+            in_max = i;
+    }
+
+    stretch_mat = image_input.clone();
+    for (int row = 0; row < stretch_mat.rows; row++){
+        for (int col = 0; col < stretch_mat.cols; col++){            
+            in = subtract_mat.at<uchar>(row,col);
+            stretch_mat.at<uchar>(row,col) = (uchar)(((in - in_min)/(in_max - in_min))*(MAX - MIN) + MIN);       
+        }      
+    }
+
+    // Pintar Stretch
+    Mat stretch_hist;
+    calcHist( &stretch_mat, 1, 0, Mat(), stretch_hist, 1, &histSize, &histRange, uniform, accumulate );
+    Mat histImage3( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+    normalize(stretch_hist, stretch_hist, 0, histImage3.rows, NORM_MINMAX, -1, Mat() );
+    for( int i = 1; i < histSize; i++ ) {
+        line(histImage3, Point( bin_w*(i-1), hist_h - cvRound(stretch_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(stretch_hist.at<float>(i)) ),
+             Scalar( 255, 0, 0), 2, 8, 0);
+
+        line(histImage3, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
+             Scalar( 0, 0, 255), 2, 8, 0  );
+    }
+    
+    // SHOW
+    //imshow("Expansion", stretch_mat);    
     imshow("Shrink", histImage);
     imshow("Subtract original-shrink", histImage2);
+    imshow("Stretch", histImage3);
     imshow(WINDOW_NAME, histogram);
     //cout << "-- Me ejecuto crack! --" << endl;
 }
