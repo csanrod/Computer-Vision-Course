@@ -21,6 +21,8 @@
 #include "opencv2/highgui.hpp"
 #include <iostream>
 
+#include <cmath>
+
 using namespace cv;
 using namespace std;
 
@@ -228,12 +230,9 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    // Resta pixel a pixel
+    // Resta
     subtract_mat = image_input.clone();
-    for (int row = 0; row < image_input.rows; row++){
-        for (int col = 0; col < image_input.cols; col++)
-            subtract_mat.at<uchar>(row, col) = image_input.at<uchar>(row, col) - histogram.at<uchar>(row, col);
-    }
+    subtract_mat = image_input - histogram;
 
     // Pintar subtract original-shrink
     Mat subtract_hist;
@@ -258,16 +257,14 @@ void sliderCallback (int a, void * arg)
            MIN = 0;
 
     bool minimun_not_finded = true;
-    for( int i = 0; i < histSize; i++ ) {
-        //cout << cvRound(subtract_hist.at<float>(i)) << endl;
+    for( int i = 1; i < histSize; i++ ) {
         if (minimun_not_finded){
-            if (cvRound(subtract_hist.at<float>(i)) != 0){
-                in_min = i;
+            if (cvRound(subtract_hist.at<float>(i-1)) != 0){
+                in_min = i-1;
                 minimun_not_finded = false;
             }
         }
-
-        if (cvRound(subtract_hist.at<float>(i)) != 0)
+        if (cvRound(subtract_hist.at<float>(i-1)) != 0)
             in_max = i;
     }
 
@@ -320,6 +317,7 @@ void sliderCallback (int a, void * arg)
     imshow("Stretch", histImage3);
     imshow("Equalized", histImage4);
     imshow(WINDOW_NAME, equalized_mat);
+    // imshow("AA", image_input);
     //cout << "-- Me ejecuto crack! --" << endl;
 }
 
