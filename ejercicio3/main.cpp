@@ -293,13 +293,33 @@ void sliderCallback (int a, void * arg)
              Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
+
+    // EQ
+    Mat equalized_mat;
+    equalizeHist( stretch_mat, equalized_mat );
+
+    // Pintar EQ
+    Mat eq_hist;
+    calcHist( &equalized_mat, 1, 0, Mat(), eq_hist, 1, &histSize, &histRange, uniform, accumulate );
+    Mat histImage4( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+    normalize(eq_hist, eq_hist, 0, histImage3.rows, NORM_MINMAX, -1, Mat() );
+    for( int i = 1; i < histSize; i++ ) {
+        line(histImage4, Point( bin_w*(i-1), hist_h - cvRound(eq_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(eq_hist.at<float>(i)) ),
+             Scalar( 255, 0, 0), 2, 8, 0);
+
+        line(histImage4, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
+             Scalar( 0, 0, 255), 2, 8, 0  );
+    }
     
     // SHOW
     //imshow("Expansion", stretch_mat);    
     imshow("Shrink", histImage);
     imshow("Subtract original-shrink", histImage2);
     imshow("Stretch", histImage3);
-    imshow(WINDOW_NAME, histogram);
+    imshow("Equalized", histImage4);
+    imshow(WINDOW_NAME, equalized_mat);
     //cout << "-- Me ejecuto crack! --" << endl;
 }
 
