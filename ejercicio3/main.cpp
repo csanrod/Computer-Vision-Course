@@ -110,7 +110,7 @@ Mat spectrum(const Mat &complexI) {
 // -- Métodos propios -- //
 uint Minimum (uint a, uint b)
 {
-    double result;
+    uint result;
 
     if (a < b)
         result = a;
@@ -122,7 +122,7 @@ uint Minimum (uint a, uint b)
 
 uint Maximum (uint a, uint b)
 {
-    double result;
+    uint result;
 
     if (a > b)
         result = a;
@@ -174,6 +174,7 @@ void sliderCallback (int a, void * arg)
     bool uniform = true, accumulate = false;
     int hist_w = 512, hist_h = 400;
     int bin_w = cvRound( (double) hist_w/histSize );
+    
 
     // Histograma de referencia
     Mat input_hist;
@@ -186,6 +187,7 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
+    // -- Filtro paso bajo -- //
     cross_control();
     aply_LPFilter();
 
@@ -199,16 +201,21 @@ void sliderCallback (int a, void * arg)
     // Histogram almacena la imagen filtrada en valores de 0 a 255
     histogram = image_input.clone();    
     for (int row = 0; row < LPinverseTransform.rows; row++){
-        for (int col = 0; col < LPinverseTransform.cols; col++){
-            histogram.at<uchar>(row,col) = (uchar)(LPinverseTransform.at<float>(row,col)*255);
+        for (int col = 0; col < LPinverseTransform.cols; col++)
+            LPinverseTransform.at<float>(row,col) = LPinverseTransform.at<float>(row,col)*255;    
+    }    
+    LPinverseTransform.convertTo(histogram, CV_8UC1);
+
+    for (int row = 0; row < histogram.rows; row++){
+        for (int col = 0; col < histogram.cols; col++){
             r_max = Maximum(r_max, histogram.at<uchar>(row,col));
             r_min = Minimum(r_min, histogram.at<uchar>(row,col));
         }      
-    }    
+    } 
     
     // Contracción entre C_max y C_min
-    for (int row = 0; row < LPinverseTransform.rows; row++){
-        for (int col = 0; col < LPinverseTransform.cols; col++){
+    for (int row = 0; row < histogram.rows; row++){
+        for (int col = 0; col < histogram.cols; col++){
             r_k = histogram.at<uchar>(row,col);
             histogram.at<uchar>(row,col) = (uchar)(((C_max - C_min)/(r_max - r_min))*(r_k - r_min) + C_min);
         }      
@@ -223,6 +230,10 @@ void sliderCallback (int a, void * arg)
              Point( bin_w*(i), hist_h - cvRound(shrink.at<float>(i)) ),
              Scalar( 255, 0, 0), 2, 8, 0);
     }
+
+    // Correlación histograma 1
+    double comparison = compareHist( shrink, input_hist, 0);
+    putText(histImage, to_string(comparison), Point(histImage.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255)); 
 
     // -- Resta original-contracción -- //
     subtract_mat = image_input.clone();
@@ -243,6 +254,10 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
+    // Correlación histograma 2
+    double comparison2 = compareHist( subtract_hist, input_hist, 0);
+    putText(histImage2, to_string(comparison2), Point(histImage2.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255)); 
+
     // -- Expansión -- //
     double in = 0,
            in_min = 255,
@@ -250,18 +265,12 @@ void sliderCallback (int a, void * arg)
            MAX = 255,
            MIN = 0;
 
-    // Cálculo de in_min e in_max
-    bool minimun_not_finded = true;
-    for( int i = 1; i < histSize; i++ ) {
-        if (minimun_not_finded){
-            if (cvRound(subtract_hist.at<float>(i-1)) != 0){
-                in_min = i-1;
-                minimun_not_finded = false;
-            }
-        }
-        if (cvRound(subtract_hist.at<float>(i-1)) != 0)
-            in_max = i;
-    }
+    for (int row = 0; row < subtract_mat.rows; row++){
+        for (int col = 0; col < subtract_mat.cols; col++){
+            in_max = Maximum(in_max, subtract_mat.at<uchar>(row,col));
+            in_min = Minimum(in_min, subtract_mat.at<uchar>(row,col));
+        }      
+    } 
 
     // Expansión
     stretch_mat = image_input.clone();
@@ -287,6 +296,10 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
+    // Correlación histograma 3
+    double comparison3 = compareHist( stretch_hist, input_hist, 0);
+    putText(histImage3, to_string(comparison3), Point(histImage3.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255)); 
+
     // -- Ecualización -- //
     Mat equalized_mat;
     equalizeHist( stretch_mat, equalized_mat );
@@ -305,8 +318,12 @@ void sliderCallback (int a, void * arg)
              Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
+
+    // Correlación histograma 4
+    double comparison4 = compareHist( eq_hist, input_hist, 0);
+    putText(histImage4, to_string(comparison4), Point(histImage4.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255)); 
     
-    // Mostrar resultados
+    // -- Mostrar resultados -- //
     imshow("Shrink", histImage);
     imshow("Subtract original-shrink", histImage2);
     imshow("Stretch", histImage3);
