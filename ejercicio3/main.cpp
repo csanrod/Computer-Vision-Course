@@ -1,17 +1,17 @@
 /* ------------------------------------------------------------ */
 // Programador: Cristian Sánchez Rodríguez
 //
-// Asignatura: Visión Artificial (Ejercicio 2)
+// Asignatura: Visión Artificial (Ejercicio 3)
 //
-// Descripción: En esta práctica se verá aplicado de forma  
-//				práctica transformaciones del dominio y espaciales
-//              de la imagen "lenna"    
+// Descripción: En esta práctica realizarmos una serie de operaciones  
+//				para realzar la imagen en escala de grises de lenna.   
 //
 //				Se aplica lo siguiente: 
-//				    - Espectro de frecuencias
-//				    - Filtro paso alto
 //				    - Filtro paso bajo
-//                  - Operación AND sobre operación umbral
+//				    - Contracción del histograma
+//				    - Resta 
+//                  - Expansión del histograma
+//                  - Ecualización final
 /* ------------------------------------------------------------ */
 
 // -- Includes -- //
@@ -20,8 +20,6 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
-
-#include <cmath>
 
 using namespace cv;
 using namespace std;
@@ -155,6 +153,7 @@ void aply_LPFilter ()
 }
 
 // Callbacks sliders
+// Si los sliders se cruzan mantiene los valores en 50 y 150
 void cross_control()
 {
     if (max_shrink_slider < min_shrink_slider) {
@@ -168,31 +167,46 @@ void cross_control()
 
 void sliderCallback (int a, void * arg) 
 {
+    // Variables para pintar los histogramas
+    int histSize = 256;
+    float range[] = { 0, 256 }; //the upper boundary is exclusive
+    const float* histRange = { range };
+    bool uniform = true, accumulate = false;
+    int hist_w = 512, hist_h = 400;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    // Histograma de referencia
+    Mat input_hist;
+    calcHist( &image_input, 1, 0, Mat(), input_hist, 1, &histSize, &histRange, uniform, accumulate );    
+    Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+    normalize(input_hist, input_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+    for( int i = 1; i < histSize; i++ ) {
+        line(histImage, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
+             Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
+             Scalar( 0, 0, 255), 2, 8, 0  );
+    }
+
     cross_control();
     aply_LPFilter();
 
+    // -- Contracción -- //
     double C_max = max_value, 
            C_min = min_value,
            r_max = 0, 
            r_min = 255,
            r_k = 0;
 
-    // Guardo en histogram la imagen LP con valores uchar de 0 a 255
-    histogram = image_input.clone();
+    // Histogram almacena la imagen filtrada en valores de 0 a 255
+    histogram = image_input.clone();    
     for (int row = 0; row < LPinverseTransform.rows; row++){
         for (int col = 0; col < LPinverseTransform.cols; col++){
             histogram.at<uchar>(row,col) = (uchar)(LPinverseTransform.at<float>(row,col)*255);
             r_max = Maximum(r_max, histogram.at<uchar>(row,col));
             r_min = Minimum(r_min, histogram.at<uchar>(row,col));
         }      
-    }
-
-    // Contracción histograma
-    // cout << "C_max: "  << C_max << endl;
-    // cout << "C_min: "  << C_min << endl;
-    // cout << "r_max: "  << r_max << endl;
-    // cout << "r_min: "  << r_min << endl << endl;
-
+    }    
+    
+    // Contracción entre C_max y C_min
     for (int row = 0; row < LPinverseTransform.rows; row++){
         for (int col = 0; col < LPinverseTransform.cols; col++){
             r_k = histogram.at<uchar>(row,col);
@@ -200,41 +214,21 @@ void sliderCallback (int a, void * arg)
         }      
     }
 
-
-    // Pintar histograma
-    int histSize = 256;
-    float range[] = { 0, 256 }; //the upper boundary is exclusive
-    const float* histRange = { range };
-    bool uniform = true, accumulate = false;
-
-    Mat shrink, input_hist;
-    calcHist( &histogram, 1, 0, Mat(), shrink, 1, &histSize, &histRange, uniform, accumulate );
-    calcHist( &image_input, 1, 0, Mat(), input_hist, 1, &histSize, &histRange, uniform, accumulate );
-    
-
-    int hist_w = 512, hist_h = 400;
-    int bin_w = cvRound( (double) hist_w/histSize );
-
-    Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
-
+    // Cálculo de histograma de contracción
+    Mat shrink;
+    calcHist( &histogram, 1, 0, Mat(), shrink, 1, &histSize, &histRange, uniform, accumulate );   
     normalize(shrink, shrink, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
-    normalize(input_hist, input_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
-
     for( int i = 1; i < histSize; i++ ) {
         line(histImage, Point( bin_w*(i-1), hist_h - cvRound(shrink.at<float>(i-1)) ),
              Point( bin_w*(i), hist_h - cvRound(shrink.at<float>(i)) ),
              Scalar( 255, 0, 0), 2, 8, 0);
-
-        line(histImage, Point( bin_w*(i-1), hist_h - cvRound(input_hist.at<float>(i-1)) ),
-             Point( bin_w*(i), hist_h - cvRound(input_hist.at<float>(i)) ),
-             Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    // Resta
+    // -- Resta original-contracción -- //
     subtract_mat = image_input.clone();
     subtract_mat = image_input - histogram;
 
-    // Pintar subtract original-shrink
+    // Histograma de la resta
     Mat subtract_hist;
     calcHist( &subtract_mat, 1, 0, Mat(), subtract_hist, 1, &histSize, &histRange, uniform, accumulate );
     Mat histImage2( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
@@ -249,13 +243,14 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    // Expansión
+    // -- Expansión -- //
     double in = 0,
            in_min = 255,
            in_max = 0,
            MAX = 255,
            MIN = 0;
 
+    // Cálculo de in_min e in_max
     bool minimun_not_finded = true;
     for( int i = 1; i < histSize; i++ ) {
         if (minimun_not_finded){
@@ -268,6 +263,7 @@ void sliderCallback (int a, void * arg)
             in_max = i;
     }
 
+    // Expansión
     stretch_mat = image_input.clone();
     for (int row = 0; row < stretch_mat.rows; row++){
         for (int col = 0; col < stretch_mat.cols; col++){            
@@ -276,7 +272,7 @@ void sliderCallback (int a, void * arg)
         }      
     }
 
-    // Pintar Stretch
+    // Histograma de la expansión
     Mat stretch_hist;
     calcHist( &stretch_mat, 1, 0, Mat(), stretch_hist, 1, &histSize, &histRange, uniform, accumulate );
     Mat histImage3( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
@@ -291,11 +287,11 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
 
-    // EQ
+    // -- Ecualización -- //
     Mat equalized_mat;
     equalizeHist( stretch_mat, equalized_mat );
 
-    // Pintar EQ
+    // Histograma de la ecualización
     Mat eq_hist;
     calcHist( &equalized_mat, 1, 0, Mat(), eq_hist, 1, &histSize, &histRange, uniform, accumulate );
     Mat histImage4( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
@@ -310,15 +306,12 @@ void sliderCallback (int a, void * arg)
              Scalar( 0, 0, 255), 2, 8, 0  );
     }
     
-    // SHOW
-    //imshow("Expansion", stretch_mat);    
+    // Mostrar resultados
     imshow("Shrink", histImage);
     imshow("Subtract original-shrink", histImage2);
     imshow("Stretch", histImage3);
     imshow("Equalized", histImage4);
     imshow(WINDOW_NAME, equalized_mat);
-    // imshow("AA", image_input);
-    //cout << "-- Me ejecuto crack! --" << endl;
 }
 
 // -- MAIN -- //
