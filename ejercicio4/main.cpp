@@ -34,7 +34,7 @@ const String WINDOW_NAME = "Practise 4";
 
 Mat image_input,
     canny_mat,
-    //grey_output,
+    gray_output,
     image_output;
 
 int mode = HOUGH,
@@ -44,6 +44,7 @@ int mode = HOUGH,
     aspect_ratio = 1;
 
 vector<Vec2f> lines;
+vector<Vec3f> circles;
 
 void print_debug_info ()
 {
@@ -67,6 +68,7 @@ void sliderCallback (int a, void * arg)
     {
         case HOUGH:
             cout << "(0) Hough selected" << endl; 
+
             // Hough estándar para las líneas            
             HoughLines( canny_mat, lines, 1, CV_PI/180, hough_acc, 0, 0 ); 
 
@@ -81,6 +83,25 @@ void sliderCallback (int a, void * arg)
                 pt2.y = cvRound(y0 - 1000*( a));
                 line( image_output, pt1, pt2, Scalar(0,255, 0), 3, LINE_AA );
             }    
+
+            // Hough circular
+            cvtColor(image_input, gray_output, COLOR_BGR2GRAY);
+            medianBlur(gray_output, gray_output, 5);
+
+            HoughCircles(gray_output, circles, HOUGH_GRADIENT, 1,
+                         gray_output.rows/16,
+                         100, 30, 1, hough_rad);
+
+            for( size_t i = 0; i < circles.size(); i++ ) {
+                Vec3i c = circles[i];
+                Point center = Point(c[0], c[1]);
+                // circle center
+                circle( image_output, center, 1, Scalar(0,100,100), 3, LINE_AA);
+                // circle outline
+                int radius = c[2];
+                circle( image_output, center, radius, Scalar(0,0,0), 3, LINE_AA);
+            }
+    
             break;
         
         case CONTOURS:
