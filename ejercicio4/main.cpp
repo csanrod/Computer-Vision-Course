@@ -27,27 +27,73 @@ enum cte
 {
     HOUGH = 0,
     CONTOURS,
-    CENTROID
+    CENTROIDS
 };
 
 const String WINDOW_NAME = "Practise 4";
 
 Mat image_input,
+    canny_mat,
+    //grey_output,
     image_output;
 
-int mode,
+int mode = HOUGH,
     canny_thresh = 100,
     hough_acc = 200,
     hough_rad = 30,
     aspect_ratio = 1;
 
-void sliderCallback (int a, void * arg) 
+vector<Vec2f> lines;
+
+void print_debug_info ()
 {
-    cout << endl << "mode: " << mode << endl;
+    cout << endl << "-------------------" << endl;
+    cout << "mode: " << mode << endl;
     cout << "canny_thresh: " << canny_thresh << endl;
     cout << "hough_acc: " << hough_acc << endl;
     cout << "hough_rad: " << hough_rad << endl;
-    cout << "aspect_ratio: " << aspect_ratio << endl << endl;
+    cout << "aspect_ratio: " << aspect_ratio << endl;
+    cout << "-------------------" << endl << endl;
+}
+
+void sliderCallback (int a, void * arg) 
+{
+    image_output = image_input.clone();
+
+    Canny(image_input, canny_mat, canny_thresh, canny_thresh*2, 3);
+    //cvtColor(canny_mat, grey_output, COLOR_GRAY2BGR);
+
+    switch (mode)
+    {
+        case HOUGH:
+            cout << "(0) Hough selected" << endl; 
+            // Hough estándar para las líneas            
+            HoughLines( canny_mat, lines, 1, CV_PI/180, hough_acc, 0, 0 ); 
+
+            for( size_t i = 0; i < lines.size(); i++ ) {
+                float rho = lines[i][0], theta = lines[i][1];
+                Point pt1, pt2;
+                double a = cos(theta), b = sin(theta);
+                double x0 = a*rho, y0 = b*rho;
+                pt1.x = cvRound(x0 + 1000*(-b));
+                pt1.y = cvRound(y0 + 1000*( a));
+                pt2.x = cvRound(x0 - 1000*(-b));
+                pt2.y = cvRound(y0 - 1000*( a));
+                line( image_output, pt1, pt2, Scalar(0,255, 0), 3, LINE_AA );
+            }    
+            break;
+        
+        case CONTOURS:
+            cout << "(1) Contours selected" << endl;
+            break;
+        
+        case CENTROIDS:
+            cout << "(2) Centroids selected" << endl;
+            break;
+    }
+
+    print_debug_info ();
+    imshow(WINDOW_NAME, image_output);
 }
 
 // -- MAIN -- //
@@ -61,12 +107,15 @@ int main(int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
+
     // Resize de damas
     resize(image_input, image_input, Size(512, 512));
 
+    image_output = image_input.clone();
+
     // Sliders
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
-    imshow(WINDOW_NAME, image_input);
+    imshow(WINDOW_NAME, image_output);
 
     createTrackbar( "0: Hough - 1: Contours - 2: Centroids", 
                     WINDOW_NAME,           
