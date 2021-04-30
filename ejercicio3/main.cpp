@@ -298,7 +298,7 @@ void sliderCallback (int a, void * arg)
 
     // Correlación histograma 3
     double comparison3 = compareHist( stretch_hist, input_hist, 0);
-    putText(histImage3, to_string(comparison3), Point(histImage3.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255)); 
+    putText(histImage3, to_string(comparison3), Point(histImage3.rows-20, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
 
     // -- Ecualización -- //
     Mat equalized_mat;

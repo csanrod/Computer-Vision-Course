@@ -1,0 +1,3 @@
+/hdd/1cuatri/vision/vision_pr/ejercicio6/build/CMakeFiles/rebuild_cache.dir
+/hdd/1cuatri/vision/vision_pr/ejercicio6/build/CMakeFiles/edit_cache.dir
+/hdd/1cuatri/vision/vision_pr/ejercicio6/build/CMakeFiles/ejercicio6.dir
