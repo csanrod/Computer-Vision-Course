@@ -79,7 +79,8 @@ ejercicio6_EXTERNAL_OBJECTS =
 
 ejercicio6: CMakeFiles/ejercicio6.dir/view3D.cpp.o
 ejercicio6: CMakeFiles/ejercicio6.dir/build.make
-ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_io.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_features.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libboost_system.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libboost_filesystem.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libboost_date_time.so
@@ -101,7 +102,13 @@ ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkViewsContext2D-7.1.so.7.1p.1
 ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkViewsCore-7.1.so.7.1p.1
 ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkRenderingContextOpenGL2-7.1.so.7.1p.1
 ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkRenderingOpenGL2-7.1.so.7.1p.1
+ejercicio6: /usr/lib/x86_64-linux-gnu/libflann_cpp.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_io.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_filters.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_search.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_octree.so
+ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libpcl_common.so
 ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkInteractionWidgets-7.1.so.7.1p.1
 ejercicio6: /usr/lib/x86_64-linux-gnu/libvtkFiltersModeling-7.1.so.7.1p.1
